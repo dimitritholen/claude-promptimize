@@ -83,6 +83,8 @@ let options: PluginOptions = {}
 let cwd = ''
 // Set while a model call runs; aborting it cancels the call.
 let stop: AbortController | undefined
+// Whether the pane is open, as far as this module has seen: the command toggles on it.
+let isOpen = false
 
 /** Writes the state, with the typed draft folded in. */
 function patch($: EngineInterface, change: Partial<PromptimizeUi>) {
@@ -232,6 +234,7 @@ async function copy($: EngineInterface, surface: RenderSurface) {
 /** Puts the result in the prompt box, unsent. The pane closes first, so the box can take the text. */
 async function use($: EngineInterface, surface: RenderSurface) {
   const ui = await read($, uiAtom)
+  isOpen = false
   await $.ui.close({ id: PANE })
   let note = 'Optimized prompt is in the prompt box. Edit or send it.'
   const filled = await $.prompt.fill({ text: ui.result, mode: 'replace' })
@@ -239,7 +242,7 @@ async function use($: EngineInterface, surface: RenderSurface) {
     const copied = await $.ui.copy({ text: ui.result, surface })
     if (!copied.isCopied) {
       await patch($, { status: { tone: 'error', text: 'The prompt could not be placed in the prompt box or on the clipboard.' } })
-      await $.ui.open(OPEN)
+      isOpen = (await $.ui.open(OPEN)).isPlaced
 
       return
     }
@@ -250,12 +253,20 @@ async function use($: EngineInterface, surface: RenderSurface) {
   $.ui.toast(note)
 }
 
-/** Starts a new run in the pane, with `args` as the rough prompt when given. */
-async function openPane($: EngineInterface, args: string | undefined) {
+/** The command: opens the pane on a new run, with `args` as the rough prompt when given; with no `args` on an open pane, closes it. */
+async function togglePane($: EngineInterface, args: string | undefined) {
   const typed = text(args)
+  if (isOpen && !typed) {
+    isOpen = false
+    stop?.abort()
+    await $.ui.close({ id: PANE })
+
+    return {}
+  }
   if (typed) draft = typed
   if (!stop) await patch($, FRESH)
   const opened = await $.ui.open(OPEN)
+  isOpen = opened.isPlaced
   if (!opened.isPlaced) return { text: `promptimize could not open a pane here: ${opened.reason}` }
 
   return {}
@@ -276,11 +287,12 @@ export const register: Register = (on, given) => {
     return next(e)
   })
 
-  on('command.run', { command: PANE }, ($, e) => openPane($, e.args))
-  on('command.run', { command: FALLBACK_COMMAND }, ($, e) => openPane($, e.args))
+  on('command.run', { command: PANE }, ($, e) => togglePane($, e.args))
+  on('command.run', { command: FALLBACK_COMMAND }, ($, e) => togglePane($, e.args))
 
   // Closing the pane (Esc included) cancels a running call.
   on('ui.close', { id: PANE }, ($, e, next) => {
+    isOpen = false
     stop?.abort()
 
     return next(e)

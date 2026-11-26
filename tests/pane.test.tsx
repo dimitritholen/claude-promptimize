@@ -110,3 +110,40 @@ test('with the name free only /promptimize is registered', async ($, on) => {
   await open($)
   expect(seen.registered).toEqual(['promptimize'])
 })
+
+test('/promptimize on an open pane closes it, and opens it again after that', async ($, on) => {
+  const seen = engine(on)
+  await open($)
+  expect(seen.opens).toHaveLength(1)
+
+  await open($)
+  expect(seen.closes).toBe(1)
+  expect(seen.opens).toHaveLength(1)
+
+  await open($)
+  expect(seen.opens).toHaveLength(2)
+})
+
+test('/promptimize with text on an open pane keeps it open with that text', async ($, on) => {
+  const seen = engine(on)
+  await open($)
+  await open($, 'fix the bug')
+
+  expect(seen.closes).toBe(0)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await ui.find({ key: 'prompt' }))?.props.value).toBe('fix the bug')
+  await ui.unmount()
+})
+
+test('after "Use" closed the pane, /promptimize opens it', async ($, on) => {
+  const seen = engine(on, { replies: ['{"questions":[]}', 'OPTIMIZED'] })
+  await open($, 'write docs')
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ key: 'generate' })
+  await ui.press({ key: 'use' })
+  await ui.unmount()
+
+  await open($)
+  expect(seen.closes).toBe(1)
+  expect(seen.opens).toHaveLength(2)
+})

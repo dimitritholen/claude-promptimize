@@ -113,11 +113,13 @@ test('"Copy" puts the result on the clipboard and keeps the pane open', async ($
 })
 
 test('closing without "Use" keeps the rough prompt for next time', async ($, on) => {
-  engine(on)
+  const seen = engine(on)
   await open($)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   await ui.input({ key: 'prompt', text: 'half a thought', kind: 'change' })
   await ui.unmount()
+  await open($) // the toggle closes the pane
+  expect(seen.closes).toBe(1)
 
   await open($)
   const again = await $.ui.mount({ ...PANE, surface: 'terminal' })

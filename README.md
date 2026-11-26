@@ -56,7 +56,7 @@ claude --plugin-dir claude-promptimize
 
 ## Use
 
-Open the pane with `/promptimize [text]`.
+Open the pane with `/promptimize [text]`. Typing `/promptimize` again closes it.
 
 If another command or skill already holds the name `/promptimize`, the pane registers as `/promptimize-pane` instead.
 
@@ -77,7 +77,7 @@ If the prompt box cannot take the text, the result goes to the clipboard and a t
 
 ### A shortcut
 
-A mod cannot register a keyboard shortcut. According to the Claude Code keybindings docs, a key can run a slash command with the action `command:<name>`; this is not tested here. In `~/.claude/keybindings.json`:
+`/promptimize` is a toggle: on an open pane it closes the pane. Bind it to a key in `~/.claude/keybindings.json` and that key opens and closes the pane:
 
 ```json
 {
@@ -87,7 +87,7 @@ A mod cannot register a keyboard shortcut. According to the Claude Code keybindi
 }
 ```
 
-`alt+p` is taken: it opens Claude Code's model picker.
+If the pane registered as `/promptimize-pane`, bind `command:promptimize-pane`. `alt+p` is taken: it opens Claude Code's model picker.
 
 ## Settings
 
