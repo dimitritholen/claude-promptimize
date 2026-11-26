@@ -1,0 +1,26 @@
+{
+  "name": "promptimize",
+  "version": "1.0.0",
+  "description": "/promptimize: turn a rough prompt into an optimized one (small, medium or large) in a pane, after a short interview",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "model": {
+      "type": "string",
+      "title": "Model",
+      "description": "The model that writes the prompt: an alias (opus, sonnet, haiku) or a full model id. Empty: the model in your settings, else sonnet.",
+      "default": ""
+    },
+    "models": {
+      "type": "string",
+      "title": "Extra models",
+      "description": "More model ids for the picker, separated by commas.",
+      "default": ""
+    },
+    "includeContext": {
+      "type": "boolean",
+      "title": "Include session context",
+      "description": "Tick \"Include recent session context\" by default. It costs tokens.",
+      "default": false
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "claude-promptimize",
+  "owner": { "name": "Dimitri Tholen" },
+  "plugins": [{ "name": "promptimize", "source": "./" }]
+}

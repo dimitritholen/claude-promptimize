@@ -1,0 +1,186 @@
+[
+  {
+    "id": "en-onboarding",
+    "size": "medium",
+    "rough": "write a good onboarding doc for new backend devs joining the team, keep it practical and not too long",
+    "output": "## Goal\nWrite `docs/ONBOARDING.md` in English, in Markdown, for backend developers who are new to this repository (claude-promptimize). After reading it, a new developer can run the project locally on day one. They understand how the code is organized. They know how to make, test and ship a change.\n\n## Research first\nRead the repository before you write anything. Look at the README, package or project manifests, scripts, config files, CI files, tests, and the main source folders. Base every statement on what you find. A wrong command costs a new developer more time than a missing one.\n\n## Content\nCover these four sections:\n1. **Local setup**: prerequisites with versions, install, configuration, run, and run tests. Give each step as a copy-pasteable command.\n2. **Architecture overview**: the main components, what each does, and how a request or task flows through them. Include key paths.\n3. **Dev workflow**: branching, PRs and testing, as far as the repo shows them.\n4. **Deploy basics**: how the code gets built and released.\n\nLeave out team contacts and people. Where the repo has no information on a topic, write `TODO: confirm with the team`. Do not guess.\n\n## Bar for \"practical and not too long\"\n- At most about 1,500 words, readable in about 10 minutes.\n- Link to existing files instead of repeating them.\n- Run each setup and test command you list. If a command fails or cannot run here, note that in the doc.\n\n## Output\nCreate the file. Then send a short report with these parts:\n- the sources you used\n- the commands you verified\n- the TODOs you left",
+    "terms": [
+      {
+        "term": "good",
+        "judge": true,
+        "how": "Four named sections (local setup with copy-pasteable commands and versions, architecture overview with key paths and flow, dev workflow, deploy basics); every statement based on repo files; unknowns marked 'TODO: confirm with the team'; setup and test commands actually run and failures noted; report listing sources, verified commands and TODOs",
+        "human": null
+      },
+      {
+        "term": "practical",
+        "judge": true,
+        "how": "Each setup step given as a copy-pasteable command that was run and verified; reader can run the project locally on day one; link to existing files instead of repeating them",
+        "human": null
+      },
+      {
+        "term": "not too long",
+        "judge": true,
+        "how": "At most about 1,500 words, readable in about 10 minutes; link instead of repeating content",
+        "human": null
+      }
+    ]
+  },
+  {
+    "id": "en-game",
+    "size": "medium",
+    "rough": "Create an immersive fully playable game built on your own custom game engine using threejs. The game that YOU would like to play. Don't use any knowledge you have about me or what I like. This will be 100% about your choices. I just have a few requirements: 1) the game must be complete, not just a single level or a single mechanic 2) the game has it's own, polished, design aesthetic. 3) The game must have a well thought out and complex world 4) beside the main character there must be NPCs to interact with 5) The game world has its own lore and must make sense. Take your time. Tap into your creative abilities. Aim for originality and replayability. Don't ask me any questions, you are completely in control from start to finish. Even the name, so first create a new folder under that name and get started.",
+    "output": "## Goal\nDesign and build a complete, playable 3D browser game in three.js that you yourself would want to play. Every creative choice is yours: genre, mechanics, world, story, style and name. Do not base anything on assumptions about the user's taste. Work autonomously from start to finish, without asking questions.\n\n## Setup\n- Choose the game's name first.\n- Create a new folder with that name inside the current directory and build everything there.\n- Use Vite with npm, and add a README with install and run instructions.\n- Generate all visuals and audio in code: procedural geometry, shaders, canvas textures and Web Audio. Add no asset files. The only runtime dependency is three.js, because the user asked for everything to come from code.\n- Write your own engine layer in a separate folder. It covers the game loop, input, scenes and entities, collision, audio and save/load. Build the game code on top of this engine.\n\n## Minimum bar (exceed it where you can)\n- **Complete:** the game has a title screen and a real ending. A full playthrough takes about 30–60 minutes. It has at least 3 distinct regions or chapters, a fail state, restart, and saved progress.\n- **Own polished aesthetic:** write a style guide covering palette, shape language, lighting, UI typography and sound. Every scene, the HUD and the menus follow it. No default three.js materials or untouched primitives stay visible.\n- **Complex world:** the regions differ in layout, hazards and visuals. Actions in one region change another region.\n- **NPCs:** add at least 5 NPCs with branching dialogue. At least 3 of them give quests, trades or choices that change gameplay.\n- **Lore:** write a lore document that covers history, factions and the rules of the world. Deliver the lore in-game through dialogue, environment details and texts. Nothing in the game contradicts the lore document.\n- **Originality and replayability:** the core mechanic is not a direct copy of one existing game. Each run differs in a way the player notices, such as procedural content or endings that depend on the player's choices.\n\n## Way of working\n1. Write `DESIGN.md` first. Include the concept, the core loop, the style guide, the lore, the region and NPC list, and the milestones. Record your decisions in this file as you work.\n2. Build in milestones. Each milestone ends in a game that runs with `npm run dev`.\n3. After each milestone, run the build and fix all console errors. Then check the new content against `DESIGN.md`.\n\n## Output\n- The game folder.\n- A final report with these parts:\n  - The game's name and pitch.\n  - How each item in the minimum bar is met.\n  - How to play from start to ending.\n  - Known limitations.",
+    "terms": [
+      {
+        "term": "immersive",
+        "judge": false,
+        "how": "",
+        "human": null
+      },
+      {
+        "term": "complete",
+        "judge": true,
+        "how": "Title screen and real ending, 30–60 minute playthrough, at least 3 distinct regions or chapters, a fail state, restart, and saved progress",
+        "human": null
+      },
+      {
+        "term": "polished (design aesthetic)",
+        "judge": true,
+        "how": "A written style guide covering palette, shape language, lighting, UI typography and sound; every scene, HUD and menu follows it; no default three.js materials or untouched primitives are visible",
+        "human": null
+      },
+      {
+        "term": "well thought out (world)",
+        "judge": false,
+        "how": "",
+        "human": null
+      },
+      {
+        "term": "complex (world)",
+        "judge": true,
+        "how": "Regions differ in layout, hazards and visuals; actions in one region change another region",
+        "human": null
+      },
+      {
+        "term": "makes sense (lore)",
+        "judge": true,
+        "how": "A lore document covering history, factions and world rules exists; lore is delivered through dialogue, environment details and texts; nothing in the game contradicts the lore document",
+        "human": null
+      },
+      {
+        "term": "originality",
+        "judge": true,
+        "how": "The core mechanic is not a direct copy of one existing game",
+        "human": null
+      },
+      {
+        "term": "replayability",
+        "judge": true,
+        "how": "Each run differs in a way the player notices, such as procedural content or endings that depend on player choices",
+        "human": null
+      },
+      {
+        "term": "custom (game engine)",
+        "judge": true,
+        "how": "Own engine layer in a separate folder covering game loop, input, scenes and entities, collision, audio and save/load, with game code built on top",
+        "human": null
+      }
+    ]
+  },
+  {
+    "id": "nl-dashboard",
+    "size": "medium",
+    "rough": "maak een mooi en overzichtelijk dashboard voor onze sales cijfers, het moet snel laden en makkelijk te gebruiken zijn",
+    "output": "## Doel\nBouw een zelfstandig salesdashboard als lokale webpagina (HTML/JS) voor intern gebruik door het salesteam. Het team moet de salescijfers in één oogopslag begrijpen. De voorbeelddata wordt later vervangen door een echte CSV/Excel-export.\n\n## Inhoud\n- Omzet over tijd.\n- Omzet per product.\n- Omzet per verkoper.\n- Totale omzet ten opzichte van target.\n- Eén datumfilter. Dit filter werkt alle cijfers en grafieken tegelijk bij.\n\n## Eisen\n- De pagina opent direct met een dubbelklik op het HTML-bestand. Er is geen server en geen build-stap nodig.\n- `fetch()` op `file://` werkt niet. Laad de data daarom via een bestandskiezer of via meegeleverde voorbeelddata.\n- Maak een voorbeeld-CSV van ongeveer 5.000 rijen. Leg het kolomformaat vast in een README, zodat de echte export erop aansluit.\n- Gebruik je een externe bibliotheek, kies er dan maximaal één.\n\n## Wat \"snel\" betekent\nMet 5.000 rijen staat de pagina binnen 1 seconde op het scherm. Na een wijziging van het datumfilter is alles binnen 200 ms bijgewerkt.\n\n## Wat \"overzichtelijk\" en \"mooi\" betekenen\n- Bovenaan staan de kerncijfers als KPI-tegels.\n- Op een scherm van 1920×1080 is alles zichtbaar zonder scrollen.\n- Het dashboard heeft maximaal 4 grafieken.\n- Gebruik één kleurenpalet.\n- Elke grafiek heeft een titel en leesbare labels.\n- Bedragen staan in euro's in Nederlandse notatie, bijvoorbeeld € 1.234,56.\n\n## Wat \"makkelijk te gebruiken\" betekent\nEen collega uit het salesteam kan het dashboard gebruiken zonder uitleg.\n\n## Controle\n- Open de pagina en meet de laadtijd.\n- Test het datumfilter op elk element.\n- Controleer of het KPI-totaal gelijk is aan de som in de CSV.\n\n## Oplevering\n- De bestanden.\n- Een README met het kolomformaat en de stappen om de data te vervangen.\n- Een kort verslag: wat je hebt getest, de gemeten tijden, en wat je niet kon controleren.",
+    "terms": [
+      {
+        "term": "mooi",
+        "judge": true,
+        "how": "KPI-tegels bovenaan, maximaal 4 grafieken, één kleurenpalet, elke grafiek met titel en leesbare labels, bedragen in Nederlandse euronotatie (€ 1.234,56)",
+        "human": null
+      },
+      {
+        "term": "overzichtelijk",
+        "judge": true,
+        "how": "alles zichtbaar zonder scrollen op 1920×1080, maximaal 4 grafieken, kerncijfers als KPI-tegels bovenaan",
+        "human": null
+      },
+      {
+        "term": "snel laden",
+        "judge": true,
+        "how": "met 5.000 rijen binnen 1 seconde op het scherm; na wijziging datumfilter binnen 200 ms bijgewerkt",
+        "human": null
+      },
+      {
+        "term": "makkelijk te gebruiken",
+        "judge": false,
+        "how": "",
+        "human": null
+      }
+    ]
+  },
+  {
+    "id": "en-cli",
+    "size": "medium",
+    "rough": "build a robust CLI tool that syncs a local folder to S3, it should be fast, user friendly and handle errors properly",
+    "output": "## Goal\nBuild a Python CLI tool that syncs a local folder to an S3 bucket and prefix, one-way from local to S3. Use boto3. The tool must work on Windows, Linux and macOS. The user wants something they can rely on daily. Re-runs must be quick, the output must be clear, and failures must never be silent.\n\n## Requirements\n- **Fast:**\n  - Skip files that are unchanged in S3. Compare size plus a content check, and make the check correct for multipart uploads.\n  - Upload in parallel with a `--workers` option.\n  - Use multipart upload for large files.\n- **Deletion:**\n  - Delete S3 objects that are missing locally only when `--delete` is passed.\n  - Without `--delete`, never delete anything.\n- **User friendly:**\n  - `--help` shows usage examples.\n  - `--dry-run` lists planned uploads and deletions without changing anything.\n  - Show progress during the run.\n  - End with a summary: uploaded, skipped, deleted, failed.\n- **Errors:**\n  - Retry transient errors with backoff.\n  - When one file fails, continue with the rest and report it at the end.\n  - Show missing credentials, an unknown bucket or an unreadable folder as one readable line, not a traceback.\n  - Exit with code 0 only when everything succeeded.\n- **Portable:** build S3 keys with `/` separators on every OS.\n\n## Approach\nWrite a short plan in `PLAN.md` first, covering layout, CLI library and comparison method. Then build in steps, and make sure the CLI runs after each step.\n\n## Verification\n- Write unit tests with mocked S3, for example moto.\n- Cover these cases:\n  - skip unchanged files\n  - `--delete` on and off\n  - `--dry-run`\n  - Windows-style paths\n  - a failing upload\n  - missing credentials\n- Run the tests and make them pass.\n\n## Output\nDeliver the code, the tests and a README with install and usage instructions. Also give a short report: files created, test results, and anything you could not verify.",
+    "terms": [
+      {
+        "term": "robust",
+        "judge": true,
+        "how": "Retries transient errors with backoff, continues past single-file failures and reports them, one-line errors for missing credentials/unknown bucket/unreadable folder, exit code 0 only on full success, works on Windows/Linux/macOS with '/' key separators; tests cover failing upload, missing credentials, Windows-style paths",
+        "human": null
+      },
+      {
+        "term": "fast",
+        "judge": true,
+        "how": "Skips unchanged files via size plus content check that is correct for multipart uploads, parallel uploads with --workers option, multipart upload for large files; test covers skipping unchanged files",
+        "human": null
+      },
+      {
+        "term": "user friendly",
+        "judge": true,
+        "how": "--help shows usage examples, --dry-run lists planned uploads and deletions without changes, progress shown during run, end summary of uploaded/skipped/deleted/failed counts",
+        "human": null
+      },
+      {
+        "term": "handle errors properly",
+        "judge": true,
+        "how": "Retry transient errors with backoff, continue on per-file failure and report at end, readable single-line messages instead of tracebacks for missing credentials/unknown bucket/unreadable folder, exit code 0 only when everything succeeded",
+        "human": null
+      }
+    ]
+  },
+  {
+    "id": "en-story",
+    "size": "medium",
+    "rough": "write a gripping short story about a lighthouse keeper, make it original and atmospheric",
+    "output": "## Goal\nWrite an original short story about a lighthouse keeper for adult readers. The style is literary fiction with an eerie edge. Subtle supernatural elements are allowed. The reader should feel the place physically and want to reach the end.\n\n## Requirements\n- Length: 1,500–2,500 words.\n- **Gripping:** set up an open question or a sense of wrongness early. Make the pressure rise at least twice. The ending should pay off a detail planted earlier. Ambiguity is fine only if it is clearly deliberate.\n- **Original:** avoid the default premises. These include a ghost ship, the keeper's dead spouse returning, a drowned sailor at the door, and \"the keeper was mad all along\". Before you draft, write down in one sentence what makes your story unlike the obvious lighthouse story.\n- **Atmospheric:** ground the story in a specific place and era. Use concrete sensory detail from at least three senses. Include the real texture of a keeper's work, such as the lamp, the logbook, or the weather. Build the mood from these details rather than from words like \"eerie\" or \"haunting\".\n- **Literary:** give the keeper an inner life that shapes the events. Keep any supernatural element suggested, not explained.\n\n## Choices that are yours\nThe era, place, point of view, title, and premise.\n\n## Output\n- Save the story as a Markdown file in the working directory, for example `lighthouse-keeper-story.md`.\n- Put the title as a heading at the top of the file.\n- Check the word count before you finish.\n- Reply with the file name, the word count, and your one-sentence statement of what makes the story original.",
+    "terms": [
+      {
+        "term": "gripping",
+        "judge": true,
+        "how": "An open question or sense of wrongness is set up early, pressure rises at least twice, and the ending pays off a detail planted earlier; any ambiguity must be clearly deliberate",
+        "human": null
+      },
+      {
+        "term": "original",
+        "judge": true,
+        "how": "Avoids the listed default premises (ghost ship, dead spouse returning, drowned sailor at the door, keeper mad all along), and a one-sentence statement of what makes it unlike the obvious lighthouse story is written before drafting and included in the reply",
+        "human": null
+      },
+      {
+        "term": "atmospheric",
+        "judge": true,
+        "how": "A specific place and era, concrete sensory detail from at least three senses, the real texture of keeper work (lamp, logbook, weather), and mood built from details rather than words like 'eerie' or 'haunting'",
+        "human": null
+      },
+      {
+        "term": "short",
+        "judge": true,
+        "how": "Length of 1,500–2,500 words, with the word count checked and reported",
+        "human": null
+      }
+    ]
+  }
+]
