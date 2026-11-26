@@ -2,28 +2,56 @@
 
 `/promptimize` for Claude Code: a pane where you type a rough prompt, pick a size and get an optimized prompt back, after a short interview when the prompt leaves real gaps. The result lands in the prompt box, unsent, so you can edit it before you press Enter.
 
-This is a port of the pi extension [pi-promptimize](https://github.com/dimitritholen/pi-promptimize). It is a Claude Code plugin with a hooks module (a "mod") and needs Claude Code 2.1.332 or newer. The mod API is early access and can change between releases.
+It is a Claude Code plugin with a hooks module (a "mod"). The mod API is early access and can change between releases.
 
 ## Install
 
-At the prompt of a Claude Code terminal session:
+### Requirements
 
-```
-/plugin install promptimize --marketplace dimitritholen/claude-promptimize
-```
+- Claude Code 2.1.332 or newer. Check with `claude --version`; update with `claude update`.
+- Git, which Claude Code uses to fetch the plugin from GitHub.
 
-Or from a shell:
+### Steps
+
+1. Install the plugin. In a terminal session of Claude Code, type at the prompt:
+
+   ```
+   /plugin install promptimize --marketplace dimitritholen/claude-promptimize
+   ```
+
+   Or run this in a shell:
+
+   ```bash
+   claude plugin install promptimize --marketplace dimitritholen/claude-promptimize
+   ```
+
+2. Answer `y` when Claude Code asks to add the marketplace `dimitritholen/claude-promptimize`.
+3. Choose a scope. `user` (the default) makes the plugin available in all your projects.
+4. Set the options when asked, or press Enter to keep the defaults. They are described under [Settings](#settings).
+5. Type `/promptimize`. A pane opens. If it does not, see [Troubleshooting](#troubleshooting).
+
+In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, then Add marketplace with `dimitritholen/claude-promptimize`, then Add plugin.
+
+### Update and uninstall
 
 ```bash
-claude plugin install promptimize --marketplace dimitritholen/claude-promptimize
+claude plugin update promptimize      # then restart Claude Code
+claude plugin uninstall promptimize
 ```
 
-Answer `y` to add the marketplace, then pick a scope. In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `dimitritholen/claude-promptimize`, then Add plugin.
+### Troubleshooting
 
-To work on it, clone the repository and load it from its folder:
+- **`/promptimize` runs something else, or is not listed.** Another command or skill already has that name. The pane is then available as `/promptimize-pane`.
+- **No pane opens.** The command prints why. A pane needs an interactive session: it does not open under `claude -p`.
+- **The plugin does not load.** Run `claude plugin list` to see whether it is installed and enabled, and `claude --debug` to see why a hook was skipped.
+
+### Run from a clone
+
+To work on the plugin, clone the repository and load it from its folder for one session:
 
 ```bash
-claude --plugin-dir path/to/claude-promptimize
+git clone https://github.com/dimitritholen/claude-promptimize
+claude --plugin-dir claude-promptimize
 ```
 
 ## Use
@@ -59,7 +87,7 @@ A mod cannot register a keyboard shortcut. According to the Claude Code keybindi
 }
 ```
 
-`alt+p`, the shortcut of the pi version, is Claude Code's model picker.
+`alt+p` is taken: it opens Claude Code's model picker.
 
 ## Settings
 
@@ -70,19 +98,6 @@ The plugin's options, in `/config` or under `pluginConfigs` in `~/.claude/settin
 - `includeContext`: the default of the context box. Default `false`; it costs tokens.
 
 The interview call runs at low effort; the rewrite runs at the model's own effort. Model calls are billed to your session.
-
-## Differences from the pi version
-
-| pi | Claude Code |
-|---|---|
-| Centered popup | A pane, docked beside the transcript or inline above the prompt |
-| Model list with a fuzzy filter, all providers | A picker over your configured models and the aliases |
-| Starts with the session's model | Starts with the `model` option, else the `model` setting, else `sonnet` |
-| `alt+p` | Your own keybinding, see above |
-| Tab takes the defaults in the interview | A button; Tab moves the focus |
-| Esc cancels a running request, a second Esc closes | Esc closes and cancels; the Cancel button only cancels |
-| `r`, `e`, `1-3` and ←/→ in the review | `r`, `e`, `c`, `1-3` as hotkeys while the pane has focus |
-| The session's thinking level, retried without it on failure | Fixed effort per call; the engine drops it for models without effort |
 
 ## Test
 

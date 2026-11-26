@@ -2,3 +2,4 @@ node_modules/
 eval/out/
 .claude-plugin/types/
 .remember/
+docs/superpowers/
