@@ -7,12 +7,13 @@
  * Options (userConfig): model, models, includeContext.
  */
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, PluginOptions, Register, RenderSurface } from 'claude-code'
+import type { EngineInterface, PluginOptions, Register, RenderChildren, RenderSurface } from 'claude-code'
 
 import type { PromptimizeStage, PromptimizeUi } from '../types'
 import {
   addEntry,
   askQuestions,
+  countWords,
   type Complete,
   type HistoryEntry,
   markOutcome,
@@ -76,6 +77,15 @@ const OPEN = { id: PANE, title: 'Promptimize', focus: true, closeOnEscape: true,
 const uiAtom = atom({ plugin: 'promptimize', key: 'ui' } as const, INITIAL, { shape: 'ui-2' })
 
 const TONE = { info: 'subtle', warning: 'warning', error: 'error' } as const
+const MARK = { info: '•', warning: '!', error: '✗' } as const
+// The mark in front of a history row: what the user did with that prompt.
+const OUTCOME = { generated: '·', used: '✓', copied: '+' } as const
+const ACCENT = 'claude'
+// Behind the options: darker than the pane in a dark theme, lighter in a light one.
+const PANEL = 'inverseText'
+const STEPS = ['Compose', 'Interview', 'Review'] as const
+// The width of the label column in front of the controls.
+const LABEL_COLUMNS = 13
 const title = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}`
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 
@@ -368,54 +378,144 @@ export const register: Register = (on, given) => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Button, Input, Progress, Select, Text } = $.ui.resolve(e)
     const ui = await read($, uiAtom)
-    const status = ui.status && <Text color={TONE[ui.status.tone]}>{ui.status.text}</Text>
+    // A docked pane can be as narrow as 24 columns: there the header stacks and the labels sit above their fields.
+    const isWide = e.props.bodyColumns >= 56
+
+    // The step the "New prompt" page is on. A model call belongs to the step it leads to.
+    const step = ui.stage === 'compose' ? 0 : ui.stage === 'result' || ui.work?.back === 'result' ? 2 : 1
+    const steps = (
+      <Box flexDirection="row" columnGap={2} flexWrap="wrap">
+        {STEPS.map((name, i) =>
+          i === step ? <Text bold color={ACCENT}>{`● ${name}`}</Text> : <Text dimColor>{`${i < step ? '✓' : '○'} ${name}`}</Text>,
+        )}
+      </Box>
+    )
+    const isHistory = ui.stage === 'history'
+    /** One tab: a frame around its name, in the accent color while its page shows. */
+    const tab = (box: string, isActive: boolean, button: RenderChildren) => (
+      <Box key={box} borderStyle="round" borderColor={isActive ? ACCENT : 'subtle'} paddingX={1}>
+        {button}
+      </Box>
+    )
+    // The title and the tabs stay on top of every page; only what is beneath them changes.
+    const header = (
+      <Box flexDirection="column">
+        <Text bold color={ACCENT}>◆ Promptimize</Text>
+        <Box flexDirection="row" columnGap={1}>
+          {tab(
+            'tabbox-new',
+            !isHistory,
+            <Button key="tab-new" plain dimColor={isHistory} label="New prompt" onPress={() => void (isHistory && patch($, { stage: 'compose', status: null }))} />,
+          )}
+          {keepsHistory() &&
+            tab(
+              'tabbox-history',
+              isHistory,
+              <Button
+                key="history"
+                plain
+                dimColor={!isHistory}
+                label={`History (${(await history($)).length})`}
+                onPress={() => void (!isHistory && !stop && patch($, { stage: 'history', status: null }))}
+              />,
+            )}
+        </Box>
+      </Box>
+    )
+    const status = ui.status && (
+      <Box flexDirection="row" gap={1}>
+        <Text color={TONE[ui.status.tone]}>{MARK[ui.status.tone]}</Text>
+        <Text color={TONE[ui.status.tone]}>{ui.status.text}</Text>
+      </Box>
+    )
+    /** The key hints under a page: each key in bold, what it does beside it. They wrap as whole hints. */
+    const hints = (...pairs: [key: string, does: string][]) => (
+      <Box flexDirection="row" columnGap={3} flexWrap="wrap">
+        {pairs.map(([key, does]) => (
+          <Text dimColor>
+            <Text bold>{key}</Text>
+            {` ${does}`}
+          </Text>
+        ))}
+      </Box>
+    )
+    /** A framed block with a caption on its first row. */
+    const card = (caption: string, color: 'subtle' | typeof ACCENT | 'success', ...body: RenderChildren[]) => (
+      <Box flexDirection="column" borderStyle="round" borderColor={color} paddingX={1}>
+        <Text dimColor>{caption}</Text>
+        {body}
+      </Box>
+    )
+    /** A labelled control, the labels of a stage lined up in one column. */
+    const field = (label: string, control: RenderChildren) => (
+      <Box flexDirection={isWide ? 'row' : 'column'}>
+        <Box width={LABEL_COLUMNS}>
+          <Text dimColor>{label}</Text>
+        </Box>
+        {control}
+      </Box>
+    )
 
     if (ui.stage === 'working' && ui.work) {
       return (
-        <Box flexDirection="column" gap={1}>
-          <Progress label={`${ui.work.label}…`} />
-          <Text dimColor>{`${ui.work.seconds}s`}</Text>
+        <Box flexDirection="column" gap={1} paddingRight={2}>
+          {header}
+          {steps}
+          {card(`${ui.work.seconds}s`, ACCENT, <Progress label={`${ui.work.label}…`} />)}
           <Button key="cancel" autoFocus label="Cancel" onPress={() => stop?.abort()} />
+          {hints(['Enter', 'cancel'], ['Esc', 'cancel and close'])}
         </Box>
       )
     }
 
     if (ui.stage === 'result') {
+      const words = countWords(ui.result)
+
       // The actions come first: a long prompt scrolls beneath them.
       return (
-        <Box flexDirection="column" gap={1}>
-          <Box flexDirection="row" gap={2}>
-            <Text>Size:</Text>
-            {SIZES.map((size: Size, i) => (
-              <Button
-                key={`size-${size}`}
-                plain
-                hotkey={String(i + 1)}
-                dimColor={size !== ui.size}
-                label={title(size)}
-                onPress={() => void resize($, size)}
-              />
-            ))}
-          </Box>
-          <Box flexDirection="row" gap={2}>
-            <Button key="use" variant="primary" autoFocus label="Use" onPress={press => void use($, press.surface)} />
-            <Button key="regenerate" plain hotkey="r" label="Regenerate" onPress={() => void finish($, 'result')} />
-            <Button key="edit" plain hotkey="e" label="Edit prompt" onPress={() => void patch($, { stage: 'compose', status: null })} />
-            <Button key="copy" plain hotkey="c" label="Copy" onPress={press => void copy($, press.surface)} />
+        <Box flexDirection="column" gap={1} paddingRight={2}>
+          {header}
+          {steps}
+          <Box flexDirection="column">
+            {field(
+              'Actions',
+              <Box flexDirection="row" gap={2}>
+                <Button key="use" variant="primary" autoFocus label="Use" onPress={press => void use($, press.surface)} />
+                <Button key="regenerate" plain hotkey="r" label="Regenerate" onPress={() => void finish($, 'result')} />
+                <Button key="edit" plain hotkey="e" label="Edit prompt" onPress={() => void patch($, { stage: 'compose', status: null })} />
+                <Button key="copy" plain hotkey="c" label="Copy" onPress={press => void copy($, press.surface)} />
+              </Box>,
+            )}
+            {field(
+              'Size',
+              <Box flexDirection="row" gap={2}>
+                {SIZES.map((size: Size, i) => (
+                  <Button
+                    key={`size-${size}`}
+                    plain
+                    hotkey={String(i + 1)}
+                    dimColor={size !== ui.size}
+                    label={title(size)}
+                    onPress={() => void resize($, size)}
+                  />
+                ))}
+              </Box>,
+            )}
           </Box>
           {status}
-          <Box flexDirection="column">
-            {ui.goal && <Text dimColor>What I think you are after:</Text>}
-            {ui.goal && <Text>{ui.goal}</Text>}
+          {card(
+            ui.goal ? 'What I think you are after' : 'Not what you meant?',
+            'subtle',
+            ui.goal && <Text>{ui.goal}</Text>,
             <Input
               key="goal"
-              placeholder="Not what you meant? Say what you are after"
+              placeholder={ui.goal ? 'Not quite? Say what you are after' : 'Say what you are after'}
               submitLabel="rewrite"
               onSubmit={value => void correct($, value)}
-            />
-          </Box>
-          <Text>{ui.result}</Text>
-          <Text dimColor>Enter on Use puts it in the prompt box, unsent · Esc closes</Text>
+            />,
+          )}
+          {card(`Optimized prompt · ${ui.size} · ${words} ${words === 1 ? 'word' : 'words'}`, 'success', <Text>{ui.result}</Text>)}
+          {hints(['Enter', 'use, unsent'], ['r', 'regenerate'], ['1-3', 'size'], ['e', 'edit'], ['c', 'copy'], ['Esc', 'close'])}
         </Box>
       )
     }
@@ -425,25 +525,29 @@ export const register: Register = (on, given) => {
       const stamp = (at: number) => new Date(at).toISOString().slice(0, 16).replace('T', ' ')
 
       return (
-        <Box flexDirection="column" gap={1}>
+        <Box flexDirection="column" gap={1} paddingRight={2}>
+          {header}
           <Box flexDirection="row" gap={2}>
-            <Button key="back" autoFocus label="Back" onPress={() => void patch($, { stage: 'compose', status: null })} />
-            <Button key="export" plain label="Export" onPress={() => void exportHistory($)} />
-            <Button key="clear" plain label="Clear" onPress={() => void clearHistory($)} />
+            <Button key="export" label="Export" onPress={() => void exportHistory($)} />
+            <Button key="clear" label="Clear" onPress={() => void clearHistory($)} />
           </Box>
           {status}
-          <Box flexDirection="column">
-            {list.length === 0 && <Text dimColor>No prompts yet.</Text>}
-            {list.map(entry => (
+          {card(
+            `${list.length} ${list.length === 1 ? 'prompt' : 'prompts'}, newest first · times in UTC`,
+            'subtle',
+            list.length === 0 && <Text dimColor>No prompts yet.</Text>,
+            list.map((entry, i) => (
               <Button
                 key={`entry-${entry.at}`}
                 plain
-                label={`${stamp(entry.at)}  ${entry.size}  ${entry.prompt.replace(/\s+/g, ' ').slice(0, 60)}`}
+                {...(i === 0 ? { autoFocus: true as const } : {})}
+                dimColor={entry.outcome === 'generated'}
+                label={`${OUTCOME[entry.outcome]} ${stamp(entry.at)}  ${entry.size.padEnd(6)}  ${entry.prompt.replace(/\s+/g, ' ').slice(0, 60)}`}
                 onPress={() => void showEntry($, entry.at)}
               />
-            ))}
-          </Box>
-          <Text dimColor>Enter opens a prompt with its result · times are UTC · Esc closes</Text>
+            )),
+          )}
+          {hints(['Enter', 'open'], ['✓', 'used'], ['+', 'copied'], ['Esc', 'close'])}
         </Box>
       )
     }
@@ -453,26 +557,24 @@ export const register: Register = (on, given) => {
       const answered = ui.qIdx ? ui.qa.slice(-ui.qIdx) : []
 
       return (
-        <Box flexDirection="column" gap={1}>
-          <Box flexDirection="column">
-            <Text dimColor>{`Prompt: ${ui.prompt.split('\n')[0] ?? ''}`}</Text>
-            <Text dimColor>{`Size: ${ui.size}`}</Text>
-          </Box>
+        <Box flexDirection="column" gap={1} paddingRight={2}>
+          {header}
+          {steps}
+          <Text dimColor>{`“${ui.prompt.split('\n')[0] ?? ''}” · ${ui.size}`}</Text>
           {answered.map(x => (
             <Box flexDirection="column">
               <Text dimColor>{`Q: ${x.q}`}</Text>
-              <Text dimColor>
+              <Text>
                 {`A: ${x.source === 'skipped' ? '(skipped)' : x.a}${x.source === 'default' ? ' (default)' : ''}`}
               </Text>
             </Box>
           ))}
-          {question && (
-            <Box flexDirection="column">
-              <Text color="suggestion">
-                {`Round ${ui.round}/${SIZE_SPEC[ui.size].rounds} · question ${ui.qIdx + 1}/${ui.questions.length}`}
-              </Text>
-              <Text bold>{question.question}</Text>
-              {question.default && <Text dimColor>{`Default: ${question.default}`}</Text>}
+          {question &&
+            card(
+              `Round ${ui.round}/${SIZE_SPEC[ui.size].rounds} · question ${ui.qIdx + 1}/${ui.questions.length}`,
+              ACCENT,
+              <Text bold>{question.question}</Text>,
+              question.default && <Text dimColor>{`Default: ${question.default}`}</Text>,
               <Input
                 key={`answer-${ui.round}-${ui.qIdx}`}
                 autoFocus
@@ -480,9 +582,8 @@ export const register: Register = (on, given) => {
                 placeholder="Your answer"
                 submitLabel="answer"
                 onSubmit={value => void answer($, value)}
-              />
-            </Box>
-          )}
+              />,
+            )}
           {status}
           <Box flexDirection="row" gap={2}>
             {!question && (
@@ -490,7 +591,7 @@ export const register: Register = (on, given) => {
             )}
             <Button key="defaults" label="Use defaults and generate" onPress={() => void finish($, 'interview')} />
           </Box>
-          <Text dimColor>Enter answers · an empty answer takes the default · - skips · Esc closes</Text>
+          {hints(['Enter', 'answer'], ['empty', 'take the default'], ['-', 'skip'], ['Esc', 'close'])}
         </Box>
       )
     }
@@ -501,23 +602,12 @@ export const register: Register = (on, given) => {
     const choices = modelChoices(text(options.model), configured, text(options.models), ...ALIASES, model)
 
     return (
-      <Box flexDirection="column" gap={1}>
-        <Select
-          key="model"
-          label="Model"
-          options={choices.map(value => ({ value }))}
-          value={model}
-          onSelect={value => void patch($, { model: value })}
-        />
-        <Select
-          key="target"
-          label="Written for"
-          options={Object.entries(TARGETS).map(([value, label]) => ({ value, label }))}
-          value={ui.target}
-          onSelect={value => void patch($, { target: value as Target })}
-        />
-        <Box flexDirection="column">
-          <Text>Your rough prompt:</Text>
+      <Box flexDirection="column" gap={1} paddingRight={2}>
+        {header}
+        {steps}
+        {card(
+          'Your rough prompt',
+          ACCENT,
           <Input
             key="prompt"
             rows={5}
@@ -529,35 +619,50 @@ export const register: Register = (on, given) => {
               draft = value
             }}
             onSubmit={value => void start($, value)}
-          />
-        </Box>
-        <Box flexDirection="row" gap={2}>
-          <Text>Size:</Text>
-          {SIZES.map((size: Size) => (
+          />,
+        )}
+        <Box key="options" flexDirection="column" backgroundColor={PANEL} paddingX={2} paddingY={1}>
+          {field(
+            'Size',
+            <Box flexDirection="row" gap={2}>
+              {SIZES.map((size: Size) => (
+                <Button
+                  key={`size-${size}`}
+                  plain
+                  dimColor={size !== ui.size}
+                  label={`${size === ui.size ? '●' : '○'} ${title(size)}`}
+                  onPress={() => void patch($, { size })}
+                />
+              ))}
+            </Box>,
+          )}
+          {field(
+            'Context',
             <Button
-              key={`size-${size}`}
+              key="context"
               plain
-              dimColor={size !== ui.size}
-              label={`${size === ui.size ? '(•)' : '( )'} ${title(size)}`}
-              onPress={() => void patch($, { size })}
-            />
-          ))}
-        </Box>
-        <Button
-          key="context"
-          plain
-          dimColor={!includeContext}
-          label={`${includeContext ? '[x]' : '[ ]'} Include recent session context`}
-          onPress={() => void patch($, { includeContext: !includeContext })}
-        />
-        <Box flexDirection="row" gap={2}>
-          <Button key="generate" variant="primary" label="Generate" onPress={() => void start($)} />
-          {keepsHistory() && (
-            <Button key="history" label={`History (${(await history($)).length})`} onPress={() => void patch($, { stage: 'history', status: null })} />
+              dimColor={!includeContext}
+              label={`${includeContext ? '[✓]' : '[ ]'} Include recent session context`}
+              onPress={() => void patch($, { includeContext: !includeContext })}
+            />,
+          )}
+          {field(
+            'Written by',
+            <Select key="model" options={choices.map(value => ({ value }))} value={model} onSelect={value => void patch($, { model: value })} />,
+          )}
+          {field(
+            'Written for',
+            <Select
+              key="target"
+              options={Object.entries(TARGETS).map(([value, label]) => ({ value, label }))}
+              value={ui.target}
+              onSelect={value => void patch($, { target: value as Target })}
+            />,
           )}
         </Box>
+        <Button key="generate" variant="primary" label="Generate" onPress={() => void start($)} />
         {status}
-        <Text dimColor>Tab moves between fields · Enter in the prompt field generates · Esc closes</Text>
+        {hints(['Tab', 'next field'], ['Enter', 'generate'], ['Esc', 'close'])}
       </Box>
     )
   })

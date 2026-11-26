@@ -71,13 +71,13 @@ If another command or skill already holds the name `/promptimize`, the pane regi
 
 The model first works out the goal behind your words, then writes a new prompt from that goal instead of rearranging your text. Vague requirements ("polished", "complete") get a minimum bar the target can check; matters of taste ("original") get a working method. The prompt is written for the target you picked: by default a coding agent working in the current directory. What the agent can look up becomes an instruction to look it up; only what you alone know and the result cannot do without becomes an `[INSERT X]` placeholder.
 
-Keys: Tab and the arrow keys move between the controls, Enter presses the focused one, Esc closes the pane and cancels a running request. While the model works, the Cancel button stops the request and keeps the pane open. The pane remembers your model, size, context choice and unfinished prompt for the session.
+The pane has two tabs that stay on top: *New prompt* and *History*. Keys: Tab and the arrow keys move between the controls, Enter presses the focused one, Esc closes the pane and cancels a running request. While the model works, the Cancel button stops the request and keeps the pane open. The pane remembers your model, size, context choice and unfinished prompt for the session.
 
 If the prompt box cannot take the text, the result goes to the clipboard and a toast says so.
 
 ### History
 
-The pane keeps the last 50 prompts it wrote: the rough prompt, your choices and interview answers, the result, and whether you used or copied it. *History* in the compose step lists them, newest first. Enter on one opens it with its result, ready to use, copy or regenerate.
+The pane keeps the last 50 prompts it wrote: the rough prompt, your choices and interview answers, the result, and whether you used or copied it. The *History* tab lists them, newest first. Enter on one opens it with its result, ready to use, copy or regenerate.
 
 - *Export* writes the history to `promptimize-history.jsonl` in the working directory, one prompt per line, oldest first.
 - *Clear* empties it.

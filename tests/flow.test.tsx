@@ -187,3 +187,19 @@ test('the prompt is written for this session unless another target is picked', a
   expect(seen.calls[3]?.prompt).not.toMatch(/Claude Code/)
   await ui.unmount()
 })
+
+test('the interview and the review each mark their own step, with the earlier ones done', async ($, on) => {
+  engine(on, { replies: [TWO, 'OPTIMIZED'] })
+  await open($, 'write docs')
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ key: 'size-small' })
+  await ui.press({ key: 'generate' })
+  expect((await ui.find({ type: 'Text', text: /Compose/ }))?.text).toBe('✓ Compose')
+  expect((await ui.find({ type: 'Text', text: /Interview/ }))?.text).toBe('● Interview')
+
+  await ui.press({ key: 'defaults' })
+  expect((await ui.find({ type: 'Text', text: /Interview/ }))?.text).toBe('✓ Interview')
+  expect((await ui.find({ type: 'Text', text: /Review/ }))?.text).toBe('● Review')
+  expect(await ui.find({ type: 'Text', text: 'Optimized prompt · small · 1 word' })).toBeDefined()
+  await ui.unmount()
+})

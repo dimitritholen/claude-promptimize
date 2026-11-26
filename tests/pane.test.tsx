@@ -19,14 +19,14 @@ test('the size buttons and the context box show the choice', async ($, on) => {
   await open($)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
 
-  expect((await ui.find({ key: 'size-medium' }))?.text).toBe('(•) Medium')
+  expect((await ui.find({ key: 'size-medium' }))?.text).toBe('● Medium')
   await ui.press({ key: 'size-large' })
-  expect((await ui.find({ key: 'size-large' }))?.text).toBe('(•) Large')
-  expect((await ui.find({ key: 'size-medium' }))?.text).toBe('( ) Medium')
+  expect((await ui.find({ key: 'size-large' }))?.text).toBe('● Large')
+  expect((await ui.find({ key: 'size-medium' }))?.text).toBe('○ Medium')
 
   expect((await ui.find({ key: 'context' }))?.text).toBe('[ ] Include recent session context')
   await ui.press({ key: 'context' })
-  expect((await ui.find({ key: 'context' }))?.text).toBe('[x] Include recent session context')
+  expect((await ui.find({ key: 'context' }))?.text).toBe('[✓] Include recent session context')
   await ui.unmount()
 })
 
@@ -76,7 +76,7 @@ test('the includeContext option ticks the box from the start', { options: { incl
   engine(on)
   await open($)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect((await ui.find({ key: 'context' }))?.text).toBe('[x] Include recent session context')
+  expect((await ui.find({ key: 'context' }))?.text).toBe('[✓] Include recent session context')
   await ui.unmount()
 })
 
@@ -146,4 +146,16 @@ test('after "Use" closed the pane, /promptimize opens it', async ($, on) => {
   await open($)
   expect(seen.closes).toBe(1)
   expect(seen.opens).toHaveLength(2)
+})
+
+test('the header names the pane and marks the step it is on', async ($, on) => {
+  engine(on)
+  await open($)
+  for (const columns of [70, 30]) {
+    const ui = await $.ui.mount({ ...PANE, props: { ...PANE.props, bodyColumns: columns }, surface: 'terminal' })
+    expect(await ui.find({ type: 'Text', text: '◆ Promptimize' })).toBeDefined()
+    expect((await ui.find({ type: 'Text', text: /Compose/ }))?.text).toBe('● Compose')
+    expect((await ui.find({ type: 'Text', text: /Review/ }))?.text).toBe('○ Review')
+    await ui.unmount()
+  }
 })

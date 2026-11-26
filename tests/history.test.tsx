@@ -96,7 +96,7 @@ test('the history lists earlier prompts, newest first, and one opens with its re
 
   const rows = (await ui.findAll({ type: 'Button' })).filter(b => b.key?.startsWith('entry-'))
   expect(rows.map(r => r.key)).toEqual(['entry-2000', 'entry-1000'])
-  expect(rows[0]?.text).toMatch(/medium.*second prompt/)
+  expect(rows[0]?.text).toMatch(/^· .*medium.*second prompt/)
 
   await ui.press({ key: 'entry-1000' })
   expect(await ui.find({ type: 'Text', text: 'result of first prompt' })).toBeDefined()
@@ -104,14 +104,20 @@ test('the history lists earlier prompts, newest first, and one opens with its re
   expect(seen.fills).toEqual([{ text: 'result of first prompt', mode: 'replace' }])
   expect(seen.history().map(e => e.outcome)).toEqual(['generated', 'used'])
   await ui.unmount()
+
+  await open($)
+  const again = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await again.press({ key: 'history' })
+  expect((await again.find({ key: 'entry-1000' }))?.text).toMatch(/^✓ /)
+  await again.unmount()
 })
 
-test('"Back" in the history returns to the rough prompt', async ($, on) => {
+test('the "New prompt" tab in the history returns to the rough prompt', async ($, on) => {
   engine(on, { store: { history: [entry(1000)] } })
   await open($, 'half a thought')
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   await ui.press({ key: 'history' })
-  await ui.press({ key: 'back' })
+  await ui.press({ key: 'tab-new' })
   expect((await ui.find({ key: 'prompt' }))?.props.value).toBe('half a thought')
   await ui.unmount()
 })
@@ -154,4 +160,33 @@ test('with the keepHistory option off nothing is kept and no history is offered'
   expect(await first.find({ type: 'Text', text: 'OPTIMIZED' })).toBeDefined()
   expect(seen.history()).toEqual([])
   await first.unmount()
+})
+
+test('the two tabs are the first controls of every page, and the active one carries the accent', async ($, on) => {
+  engine(on, { replies: ['{"questions":[]}', 'OPTIMIZED'] })
+  await open($, 'write docs')
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const tabs = async () => (await ui.findAll({ type: 'Button' })).slice(0, 2).map(b => [b.key, b.text])
+  const border = async (key: string) => (await ui.find({ key }))?.props.borderColor
+
+  expect(await tabs()).toEqual([['tab-new', 'New prompt'], ['history', 'History (0)']])
+  expect([await border('tabbox-new'), await border('tabbox-history')]).toEqual(['claude', 'subtle'])
+
+  await ui.press({ key: 'generate' })
+  expect(await ui.find({ type: 'Text', text: 'OPTIMIZED' })).toBeDefined()
+  expect(await tabs()).toEqual([['tab-new', 'New prompt'], ['history', 'History (1)']])
+
+  await ui.press({ key: 'history' })
+  expect([await border('tabbox-new'), await border('tabbox-history')]).toEqual(['subtle', 'claude'])
+  expect(await tabs()).toEqual([['tab-new', 'New prompt'], ['history', 'History (1)']])
+  await ui.unmount()
+})
+
+test('the options sit in a panel of their own, and the pane keeps clear of its right edge', async ($, on) => {
+  engine(on)
+  await open($)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await ui.find({ key: 'options' }))?.props.backgroundColor).toBe('inverseText')
+  expect(await ui.drawn()).toMatchObject({ props: { paddingRight: 2 } })
+  await ui.unmount()
 })
