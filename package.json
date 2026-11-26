@@ -1,6 +1,6 @@
 {
   "name": "claude-promptimize",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "/promptimize for Claude Code: turn a rough prompt into an optimized one in a pane, after a short interview",
   "license": "MIT",

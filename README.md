@@ -75,6 +75,15 @@ Keys: Tab and the arrow keys move between the controls, Enter presses the focuse
 
 If the prompt box cannot take the text, the result goes to the clipboard and a toast says so.
 
+### History
+
+The pane keeps the last 50 prompts it wrote: the rough prompt, your choices and interview answers, the result, and whether you used or copied it. *History* in the compose step lists them, newest first. Enter on one opens it with its result, ready to use, copy or regenerate.
+
+- *Export* writes the history to `promptimize-history.jsonl` in the working directory, one prompt per line, oldest first.
+- *Clear* empties it.
+
+The history stays on your machine, in the plugin's own store under your Claude Code configuration directory. The conversation is never kept, only whether you included it. Turn the history off with the `keepHistory` option.
+
 ### A shortcut
 
 `/promptimize` is a toggle: on an open pane it closes the pane. Bind it to a key in `~/.claude/keybindings.json` and that key opens and closes the pane:
@@ -96,6 +105,7 @@ The plugin's options, in `/config` or under `pluginConfigs` in `~/.claude/settin
 - `model`: the model the pane starts with, an alias (`opus`, `sonnet`, `haiku`) or a full model id. Default: the `model` in your settings, else `sonnet`. A model you pick in the pane wins for the rest of the session.
 - `models`: extra model ids for the picker, separated by commas.
 - `includeContext`: the default of the context box. Default `false`; it costs tokens.
+- `keepHistory`: keep the history described above. Default `true`.
 
 The interview call runs at low effort; the rewrite runs at the model's own effort. Model calls are billed to your session.
 

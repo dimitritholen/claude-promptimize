@@ -1,5 +1,7 @@
 import type { ModelApiError, ModelCompleteResult, On, UiCopyResult } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
+
+import type { HistoryEntry } from '../hooks/core'
 import { mock } from 'claude-code/testing'
 
 export const PANE = {
@@ -32,11 +34,14 @@ export type Setup = {
   /** The engine refuses every model call with this reason. */
   deny?: string
   messages?: { role: 'user' | 'assistant'; text: string }[]
+  /** What the plugin's store holds before the test. */
+  store?: Record<string, unknown>
 }
 
 /** Stands for the engine beneath the mod and records what the mod asked of it. */
 export function engine(on: On, setup: Setup = {}) {
   const replies = [...(setup.replies ?? [])]
+  const store: Record<string, unknown> = { ...setup.store }
   const seen = {
     opens: [] as Record<string, unknown>[],
     closes: 0,
@@ -46,8 +51,22 @@ export function engine(on: On, setup: Setup = {}) {
     calls: [] as { model: string; system?: string; prompt: string; effort?: string; maxTokens?: number }[],
     messageReads: 0,
     registered: [] as string[],
+    writes: [] as { path: string; text: string }[],
+    /** The history as the plugin's store holds it now. */
+    history: () => (store.history ?? []) as HistoryEntry[],
   }
   mock.clock(on)
+  on('store.get', (_, e) => ({ value: store[e.key] }))
+  on('store.set', (_, e) => {
+    store[e.key] = JSON.parse(JSON.stringify(e.value))
+
+    return { value: undefined }
+  })
+  on('fs.write', (_, e) => {
+    seen.writes.push({ path: e.path, text: e.text })
+
+    return { value: undefined }
+  })
   on('command.register', (_, e) => {
     seen.registered.push(e.name)
     if (setup.isNameTaken && e.name === 'promptimize') return { deny: '"/promptimize" refused: another command holds it' }

@@ -1,4 +1,4 @@
-export type PromptimizeStage = 'compose' | 'working' | 'interview' | 'result'
+export type PromptimizeStage = 'compose' | 'working' | 'interview' | 'result' | 'history'
 
 /** Everything the pane draws from, kept for the session. */
 export type PromptimizeUi = {

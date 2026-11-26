@@ -335,3 +335,34 @@ export async function rewrite(complete: Complete, cwd: string, req: Request, sig
   // A "shorter" version that is empty or longer is no improvement: keep the first.
   return short && countWords(short) < countWords(out.prompt) ? { ...out, prompt: short } : out
 }
+
+/** One written prompt, as the history keeps it: what went in, what came out and what the user did with it. The conversation itself is never kept. */
+export type HistoryEntry = {
+  /** When it was written, in milliseconds; also its id. */
+  at: number
+  prompt: string
+  size: Size
+  /** The model that wrote it. */
+  model: string
+  target: Target
+  /** Whether the recent conversation rode along. */
+  usedContext: boolean
+  qa: QA[]
+  /** The model's reading of the goal, and the user's correction of it ('' when none). */
+  goal: string
+  goalFix: string
+  result: string
+  outcome: 'generated' | 'used' | 'copied'
+}
+
+export const HISTORY_MAX = 50
+
+/** The history with `entry` in front, cut to the newest HISTORY_MAX. */
+export function addEntry(list: readonly HistoryEntry[], entry: HistoryEntry): HistoryEntry[] {
+  return [entry, ...list].slice(0, HISTORY_MAX)
+}
+
+/** The history with the outcome of the entry written at `at` changed. */
+export function markOutcome(list: readonly HistoryEntry[], at: number, outcome: HistoryEntry['outcome']): HistoryEntry[] {
+  return list.map(entry => (entry.at === at ? { ...entry, outcome } : entry))
+}

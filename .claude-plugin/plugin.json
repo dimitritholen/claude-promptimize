@@ -1,6 +1,6 @@
 {
   "name": "promptimize",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "/promptimize: turn a rough prompt into an optimized one (small, medium or large) in a pane, after a short interview",
   "types": "./types/index.d.ts",
   "userConfig": {
@@ -21,6 +21,12 @@
       "title": "Include session context",
       "description": "Tick \"Include recent session context\" by default. It costs tokens.",
       "default": false
+    },
+    "keepHistory": {
+      "type": "boolean",
+      "title": "Keep a history",
+      "description": "Keep the last 50 rough prompts and their results on this machine, for the History list and for export. The conversation is never kept.",
+      "default": true
     }
   }
 }

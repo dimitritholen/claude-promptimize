@@ -11,8 +11,11 @@ import type { EngineInterface, PluginOptions, Register, RenderSurface } from 'cl
 
 import type { PromptimizeStage, PromptimizeUi } from '../types'
 import {
+  addEntry,
   askQuestions,
   type Complete,
+  type HistoryEntry,
+  markOutcome,
   modelChoices,
   type Request,
   resolveAnswer,
@@ -83,6 +86,8 @@ let options: PluginOptions = {}
 let cwd = ''
 // Set while a model call runs; aborting it cancels the call.
 let stop: AbortController | undefined
+// The history entry of the result on screen: "Use" and "Copy" record their outcome on it.
+let shownAt: number | undefined
 // Whether the pane is open, as far as this module has seen: the command toggles on it.
 let isOpen = false
 
@@ -99,6 +104,22 @@ async function settingsModel($: EngineInterface) {
 /** The model picked in the pane, else the option, else the session's setting, else the fallback. */
 async function chosenModel($: EngineInterface, ui: PromptimizeUi) {
   return ui.model ?? (text(options.model) || (await settingsModel($)) || FALLBACK_MODEL)
+}
+
+const HISTORY = 'history'
+const keepsHistory = () => options.keepHistory !== false
+
+/** The written prompts kept on this machine, newest first. */
+async function history($: EngineInterface): Promise<HistoryEntry[]> {
+  const kept = keepsHistory() ? await $.store.get(HISTORY) : undefined
+
+  return Array.isArray(kept) ? (kept as HistoryEntry[]) : []
+}
+
+/** Records what the user did with the result on screen. */
+async function mark($: EngineInterface, outcome: HistoryEntry['outcome']) {
+  if (shownAt === undefined || !keepsHistory()) return
+  await $.store.set(HISTORY, markOutcome(await history($), shownAt, outcome))
 }
 
 const wantsContext = (ui: PromptimizeUi) => ui.includeContext ?? options.includeContext === true
@@ -169,6 +190,24 @@ async function finish($: EngineInterface, back: PromptimizeStage) {
     rewrite(completer($, model), cwd, await request($, { ...ui, qa }), signal),
   )
   if (out === undefined) return
+  shownAt = undefined
+  if (keepsHistory()) {
+    shownAt = await $.clock.now()
+    const entry: HistoryEntry = {
+      at: shownAt,
+      prompt: ui.prompt,
+      size: ui.size,
+      model,
+      target: ui.target,
+      usedContext: wantsContext(ui),
+      qa,
+      goal: out.goal,
+      goalFix: ui.goalFix,
+      result: out.prompt,
+      outcome: 'generated',
+    }
+    await $.store.set(HISTORY, addEntry(await history($), entry))
+  }
   await patch($, { stage: 'result', result: out.prompt, goal: out.goal, work: null })
 }
 
@@ -224,6 +263,7 @@ async function resize($: EngineInterface, size: Size) {
 async function copy($: EngineInterface, surface: RenderSurface) {
   const ui = await read($, uiAtom)
   const copied = await $.ui.copy({ text: ui.result, surface })
+  if (copied.isCopied) await mark($, 'copied')
   await patch($, {
     status: copied.isCopied
       ? { tone: 'info', text: 'Copied to the clipboard.' }
@@ -248,9 +288,36 @@ async function use($: EngineInterface, surface: RenderSurface) {
     }
     note = 'The prompt box did not take the text, so it is on the clipboard.'
   }
+  await mark($, filled.isFilled ? 'used' : 'copied')
   draft = '' // a used prompt starts fresh next time
   await patch($, FRESH)
   $.ui.toast(note)
+}
+
+/** Opens an earlier prompt from the history as the result on screen. */
+async function showEntry($: EngineInterface, at: number) {
+  const entry = (await history($)).find(one => one.at === at)
+  if (!entry) return
+  draft = entry.prompt
+  shownAt = at
+  await patch($, { stage: 'result', size: entry.size, model: entry.model, target: entry.target, qa: entry.qa, result: entry.result, goal: entry.goal, goalFix: '', status: null })
+}
+
+/** Writes the history, oldest first, as JSON lines into the working directory. */
+async function exportHistory($: EngineInterface) {
+  const list = (await history($)).reverse()
+  const path = `${cwd.replace(/[\\/]+$/, '')}/promptimize-history.jsonl`
+  try {
+    await $.fs.write(path, `${list.map(entry => JSON.stringify(entry)).join('\n')}\n`)
+    await patch($, { status: { tone: 'info', text: `Wrote ${list.length} prompts to ${path}` } })
+  } catch (err) {
+    await patch($, { status: { tone: 'error', text: `Could not write ${path}: ${err instanceof Error ? err.message : String(err)}` } })
+  }
+}
+
+async function clearHistory($: EngineInterface) {
+  await $.store.set(HISTORY, [])
+  await patch($, { status: { tone: 'info', text: 'History cleared.' } })
 }
 
 /** The command: opens the pane on a new run, with `args` as the rough prompt when given; with no `args` on an open pane, closes it. */
@@ -349,6 +416,34 @@ export const register: Register = (on, given) => {
           </Box>
           <Text>{ui.result}</Text>
           <Text dimColor>Enter on Use puts it in the prompt box, unsent · Esc closes</Text>
+        </Box>
+      )
+    }
+
+    if (ui.stage === 'history') {
+      const list = await history($)
+      const stamp = (at: number) => new Date(at).toISOString().slice(0, 16).replace('T', ' ')
+
+      return (
+        <Box flexDirection="column" gap={1}>
+          <Box flexDirection="row" gap={2}>
+            <Button key="back" autoFocus label="Back" onPress={() => void patch($, { stage: 'compose', status: null })} />
+            <Button key="export" plain label="Export" onPress={() => void exportHistory($)} />
+            <Button key="clear" plain label="Clear" onPress={() => void clearHistory($)} />
+          </Box>
+          {status}
+          <Box flexDirection="column">
+            {list.length === 0 && <Text dimColor>No prompts yet.</Text>}
+            {list.map(entry => (
+              <Button
+                key={`entry-${entry.at}`}
+                plain
+                label={`${stamp(entry.at)}  ${entry.size}  ${entry.prompt.replace(/\s+/g, ' ').slice(0, 60)}`}
+                onPress={() => void showEntry($, entry.at)}
+              />
+            ))}
+          </Box>
+          <Text dimColor>Enter opens a prompt with its result · times are UTC · Esc closes</Text>
         </Box>
       )
     }
@@ -455,7 +550,12 @@ export const register: Register = (on, given) => {
           label={`${includeContext ? '[x]' : '[ ]'} Include recent session context`}
           onPress={() => void patch($, { includeContext: !includeContext })}
         />
-        <Button key="generate" variant="primary" label="Generate" onPress={() => void start($)} />
+        <Box flexDirection="row" gap={2}>
+          <Button key="generate" variant="primary" label="Generate" onPress={() => void start($)} />
+          {keepsHistory() && (
+            <Button key="history" label={`History (${(await history($)).length})`} onPress={() => void patch($, { stage: 'history', status: null })} />
+          )}
+        </Box>
         {status}
         <Text dimColor>Tab moves between fields · Enter in the prompt field generates · Esc closes</Text>
       </Box>
